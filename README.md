@@ -6,3 +6,17 @@
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Levasey_java-project-72&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Levasey_java-project-72)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=Levasey_java-project-72&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=Levasey_java-project-72)
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=Levasey_java-project-72&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=Levasey_java-project-72)
+
+## Requirements
+
+* Java 21
+* Gradle > 8.5
+
+## Usage
+
+```bash
+make install
+make start
+```
+
+Open in browser: http://localhost:7070
