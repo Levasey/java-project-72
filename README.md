@@ -19,4 +19,4 @@ make install
 make start
 ```
 
-Open in browser: http://localhost:7070
+Open in browser: https://java-project-72-buxh.onrender.com
