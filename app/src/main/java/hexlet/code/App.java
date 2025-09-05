@@ -5,6 +5,8 @@ import com.zaxxer.hikari.HikariDataSource;
 import gg.jte.ContentType;
 import gg.jte.TemplateEngine;
 import gg.jte.resolve.ResourceCodeResolver;
+import hexlet.code.controller.UrlsController;
+import hexlet.code.dto.BasePage;
 import hexlet.code.repository.BaseRepository;
 import io.javalin.Javalin;
 import io.javalin.rendering.template.JavalinJte;
@@ -16,6 +18,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.stream.Collectors;
+
+import static io.javalin.rendering.template.TemplateUtil.model;
 
 @Slf4j
 public class App {
@@ -72,10 +76,30 @@ public class App {
 
         Javalin app = Javalin.create(config -> {
             config.bundledPlugins.enableDevLogging();
-            config.fileRenderer(new JavalinJte());
             config.fileRenderer(new JavalinJte(createTemplateEngine()));
         });
-        app.get("/", ctx -> ctx.result("Hello World"));
+
+        app.get("/", ctx -> {
+            BasePage page = new BasePage();
+
+            // Добавляем flash-сообщения из сессии
+            String flash = ctx.sessionAttribute("flash");
+            String flashType = ctx.sessionAttribute("flashType");
+
+            if (flash != null) {
+                page.setFlash(flash);
+                page.setFlashType(flashType);
+                // Очищаем flash-сообщения после использования
+                ctx.sessionAttribute("flash", null);
+                ctx.sessionAttribute("flashType", null);
+            }
+
+            ctx.render("index.jte", model("page", page));
+        });
+        app.post("/urls", UrlsController::create);
+        app.get("/urls", UrlsController::index);
+        app.get("/urls/{id}", UrlsController::show);
+
         return app;
     }
 

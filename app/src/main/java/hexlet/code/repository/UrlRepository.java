@@ -72,6 +72,22 @@ public class UrlRepository {
         }
     }
 
+    public static boolean existsByName(String name) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM urls WHERE name = ?";
+
+        try (var connection = BaseRepository.dataSource.getConnection();
+             var preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setString(1, name);
+            var resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                return resultSet.getInt(1) > 0;
+            }
+            return false;
+        }
+    }
+
     private static Url extractUrl(ResultSet resultSet) throws SQLException {
         var url = new Url();
         url.setId(resultSet.getLong("id"));
