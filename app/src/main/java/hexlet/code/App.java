@@ -72,10 +72,12 @@ public class App {
 
         Javalin app = Javalin.create(config -> {
             config.bundledPlugins.enableDevLogging();
-            config.fileRenderer(new JavalinJte());
             config.fileRenderer(new JavalinJte(createTemplateEngine()));
         });
-        app.get("/", ctx -> ctx.result("Hello World"));
+        app.get("/", ctx -> {
+            ctx.render("index.jte");
+        });
+
         return app;
     }
 
