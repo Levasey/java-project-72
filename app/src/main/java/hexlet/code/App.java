@@ -98,7 +98,7 @@ public class App {
         });
         app.post("/urls", UrlsController::create);
         app.get("/urls", UrlsController::index);
-        app.get("/urls/{id}", UrlsController::show);
+//        app.get("/urls/{id}", UrlsController::show);
 
         return app;
     }
