@@ -32,6 +32,8 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // https://mvnrepository.com/artifact/org.assertj/assertj-core
+    testImplementation 'org.assertj:assertj-core:4.0.0-M1'
 
     implementation 'com.h2database:h2:2.2.224'
     implementation 'org.postgresql:postgresql:42.7.7'
@@ -44,6 +46,9 @@ dependencies {
     implementation 'io.javalin:javalin:6.7.0'
     implementation 'io.javalin:javalin-rendering:6.7.0'
     implementation 'gg.jte:jte:3.2.1'
+
+    // https://mvnrepository.com/artifact/io.javalin/javalin-testtools
+    implementation 'io.javalin:javalin-testtools:6.7.0'
 
     // https://mvnrepository.com/artifact/com.zaxxer/HikariCP
     implementation 'com.zaxxer:HikariCP:7.0.2'

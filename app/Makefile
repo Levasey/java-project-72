@@ -1,5 +1,9 @@
 .DEFAULT_GOAL := build-run
 
+coverage:
+	./gradlew jacocoTestReport
+	open build/reports/jacoco/test/html/index.html
+
 setup:
 	./gradlew wrapper --gradle-version 8.13
 
