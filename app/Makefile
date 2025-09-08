@@ -12,6 +12,9 @@ build:
 install:
 	./gradlew install
 
+run:
+	./gradlew run
+
 test:
 	./gradlew test
 
@@ -27,4 +30,4 @@ update-deps:
 
 build-run: build run
 
-.PHONY: build
+.PHONY: build run build-run clean install test report lint update-deps setup
