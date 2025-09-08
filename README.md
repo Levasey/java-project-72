@@ -20,4 +20,4 @@ make install
 make start
 ```
 
-Open in browser: https://java-project-72-buxh.onrender.com
+Open in browser: https://java-project-72-yxeo.onrender.com
