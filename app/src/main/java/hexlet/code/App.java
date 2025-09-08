@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.stream.Collectors;
@@ -28,14 +29,53 @@ public class App {
         return Integer.valueOf(port);
     }
 
-    private static String getDatabaseUrl() {
-        return System.getenv().getOrDefault("JDBC_DATABASE_URL", "jdbc:h2:mem:project;DB_CLOSE_DELAY=-1;");
-    }
-
     private static String readResourceFile(String fileName) throws IOException {
         var inputStream = App.class.getClassLoader().getResourceAsStream(fileName);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             return reader.lines().collect(Collectors.joining("\n"));
+        }
+    }
+
+    private static HikariDataSource createDataSource() {
+        HikariConfig config = new HikariConfig();
+
+        String jdbcUrl = System.getenv("JDBC_DATABASE_URL");
+        String databaseUrl = System.getenv("DATABASE_URL");
+
+        if (jdbcUrl != null && !jdbcUrl.isEmpty()) {
+            config.setJdbcUrl(jdbcUrl);
+        } else if (databaseUrl != null && !databaseUrl.isEmpty()) {
+            // Конвертируем DATABASE_URL в JDBC format
+            config.setJdbcUrl(convertDatabaseUrlToJdbc(databaseUrl));
+        } else {
+            // Локальная разработка с H2
+            config.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1");
+        }
+
+        // Дополнительные настройки для PostgreSQL
+        config.setMaximumPoolSize(10);
+        config.setMinimumIdle(2);
+        config.setIdleTimeout(30000);
+        config.setConnectionTimeout(30000);
+
+        return new HikariDataSource(config);
+    }
+
+    private static String convertDatabaseUrlToJdbc(String databaseUrl) {
+        // Конвертация DATABASE_URL в JDBC format
+        // Пример: postgresql://user:pass@host:port/dbname -> jdbc:postgresql://host:port/dbname?user=user&password=pass
+        try {
+            URI dbUri = new URI(databaseUrl);
+            String username = dbUri.getUserInfo().split(":")[0];
+            String password = dbUri.getUserInfo().split(":")[1];
+            String host = dbUri.getHost();
+            int port = dbUri.getPort();
+            String path = dbUri.getPath();
+
+            return String.format("jdbc:postgresql://%s:%d%s?user=%s&password=%s&ssl=true",
+                    host, port, path, username, password);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert DATABASE_URL to JDBC format", e);
         }
     }
 
@@ -109,6 +149,16 @@ public class App {
     }
 
     public static void main(String[] args) throws IOException, SQLException {
+        // Явно загружаем драйвер PostgreSQL
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("PostgreSQL Driver not found", e);
+        }
+
+        HikariDataSource dataSource = createDataSource();
+        BaseRepository.dataSource = dataSource;
+
         Javalin app = getApp();
         app.start(getPort());
     }
