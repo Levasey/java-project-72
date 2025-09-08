@@ -47,25 +47,21 @@ public class App {
     }
 
     public static Javalin getApp() throws IOException, SQLException {
+        // Получаем порт из переменной окружения или используем по умолчанию
+        int port = getPort();
 
-        var hikariConfig = new HikariConfig();
-        String databaseUrl = getDatabaseUrl();
+        // Настраиваем подключение к БД
+        HikariConfig hikariConfig = new HikariConfig();
 
-        // Настройка для разных типов баз данных
-        if (databaseUrl.startsWith("jdbc:h2:")) {
-            // H2 база данных
-            hikariConfig.setJdbcUrl(databaseUrl);
-            hikariConfig.setDriverClassName("org.h2.Driver");
-        } else if (databaseUrl.startsWith("jdbc:postgresql:")) {
-            // PostgreSQL база данных
-            hikariConfig.setJdbcUrl(databaseUrl);
-            hikariConfig.setDriverClassName("org.postgresql.Driver");
-
-            // Дополнительные настройки для PostgreSQL
-            hikariConfig.setMaximumPoolSize(10);
-            hikariConfig.setMinimumIdle(2);
-            hikariConfig.setIdleTimeout(30000);
-            hikariConfig.setConnectionTimeout(20000);
+        // Получаем URL БД из переменных окружения
+        String jdbcUrl = System.getenv("JDBC_DATABASE_URL");
+        if (jdbcUrl == null || jdbcUrl.isEmpty()) {
+            // Для локальной разработки
+            jdbcUrl = "jdbc:h2:mem:project;DB_CLOSE_DELAY=-1";
+            hikariConfig.setJdbcUrl(jdbcUrl);
+        } else {
+            // Для продакшена (Render.com)
+            hikariConfig.setJdbcUrl(jdbcUrl);
         }
 
         var dataSource = new HikariDataSource(hikariConfig);
