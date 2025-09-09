@@ -57,6 +57,33 @@ public class AppTest {
     }
 
     @Test
+    public void testShowPage() throws SQLException {
+        Url url = new Url("https://www.example.com");
+        UrlRepository.save(url);
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.get("/urls/" + url.getId());
+            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.body().string())
+                    .contains("Сайт:")
+                    .contains("https://www.example.com")
+                    .contains("ID")
+                    .contains(String.valueOf(url.getId()))
+                    .contains("Имя")
+                    .contains(url.getName())
+                    .contains("Дата создания")
+                    .contains(url.getFormattedCreatedAt());
+        });
+    }
+
+    @Test
+    public void testShowPageNotFound() {
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.get("/urls/999");
+            assertThat(response.code()).isEqualTo(404);
+        });
+    }
+
+    @Test
     public void testAddValidUrl() throws SQLException {
         JavalinTest.test(app, (server, client) -> {
             var requestBody = "url=https://www.example.com";

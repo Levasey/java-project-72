@@ -1,9 +1,11 @@
 package hexlet.code.controller;
 
+import hexlet.code.dto.UrlPage;
 import hexlet.code.dto.UrlsPage;
 import hexlet.code.model.Url;
 import hexlet.code.repository.UrlRepository;
 import io.javalin.http.Context;
+import io.javalin.http.NotFoundResponse;
 
 import java.net.URI;
 import java.net.URL;
@@ -75,5 +77,13 @@ public class UrlsController {
             ctx.sessionAttribute("flashType", "danger");
             ctx.redirect("/");
         }
+    }
+
+    public static void show(Context ctx) throws SQLException {
+        Long id = ctx.pathParamAsClass("id", Long.class).get();
+        var url = UrlRepository.findById(id)
+                .orElseThrow(() -> new NotFoundResponse("Entity with id = " + id + " not found"));
+        UrlPage page = new UrlPage(url);
+        ctx.render("urls/show.jte", model("page", page));
     }
 }

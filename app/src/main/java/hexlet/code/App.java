@@ -40,43 +40,17 @@ public class App {
         HikariConfig config = new HikariConfig();
 
         String jdbcUrl = System.getenv("JDBC_DATABASE_URL");
-        String databaseUrl = System.getenv("DATABASE_URL");
-
         if (jdbcUrl != null && !jdbcUrl.isEmpty()) {
             config.setJdbcUrl(jdbcUrl);
-        } else if (databaseUrl != null && !databaseUrl.isEmpty()) {
-            // Конвертируем DATABASE_URL в JDBC format
-            config.setJdbcUrl(convertDatabaseUrlToJdbc(databaseUrl));
+            // Добавляем параметры SSL для безопасности
+            config.addDataSourceProperty("ssl", "true");
+            config.addDataSourceProperty("sslmode", "require");
         } else {
             // Локальная разработка с H2
             config.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1");
         }
 
-        // Дополнительные настройки для PostgreSQL
-        config.setMaximumPoolSize(10);
-        config.setMinimumIdle(2);
-        config.setIdleTimeout(30000);
-        config.setConnectionTimeout(30000);
-
         return new HikariDataSource(config);
-    }
-
-    private static String convertDatabaseUrlToJdbc(String databaseUrl) {
-        // Конвертация DATABASE_URL в JDBC format
-        // Пример: postgresql://user:pass@host:port/dbname -> jdbc:postgresql://host:port/dbname?user=user&password=pass
-        try {
-            URI dbUri = new URI(databaseUrl);
-            String username = dbUri.getUserInfo().split(":")[0];
-            String password = dbUri.getUserInfo().split(":")[1];
-            String host = dbUri.getHost();
-            int port = dbUri.getPort();
-            String path = dbUri.getPath();
-
-            return String.format("jdbc:postgresql://%s:%d%s?user=%s&password=%s&ssl=true",
-                    host, port, path, username, password);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to convert DATABASE_URL to JDBC format", e);
-        }
     }
 
     private static TemplateEngine createTemplateEngine() {
@@ -134,7 +108,7 @@ public class App {
         });
         app.post("/urls", UrlsController::create);
         app.get("/urls", UrlsController::index);
-//        app.get("/urls/{id}", UrlsController::show);
+        app.get("/urls/{id}", UrlsController::show);
 
         return app;
     }
@@ -149,7 +123,6 @@ public class App {
     }
 
     public static void main(String[] args) throws IOException, SQLException {
-        // Явно загружаем драйвер PostgreSQL
         try {
             Class.forName("org.postgresql.Driver");
         } catch (ClassNotFoundException e) {

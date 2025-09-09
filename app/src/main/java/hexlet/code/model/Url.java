@@ -3,6 +3,7 @@ package hexlet.code.model;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @ToString
 public class Url {
@@ -32,6 +33,14 @@ public class Url {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getFormattedCreatedAt() {
+        if (createdAt == null) {
+            return "";
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        return createdAt.format(formatter);
     }
 
     public LocalDateTime getCreatedAt() {
