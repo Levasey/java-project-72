@@ -42,42 +42,18 @@ public class App {
         HikariConfig config = new HikariConfig();
 
         String jdbcUrl = System.getenv("JDBC_DATABASE_URL");
-        String username = System.getenv("JDBC_DATABASE_USERNAME");
-        String password = System.getenv("JDBC_DATABASE_PASSWORD");
 
         System.out.println("Database URL: " + (jdbcUrl != null ? jdbcUrl : "not set"));
 
         if (jdbcUrl != null && !jdbcUrl.isEmpty()) {
             // Продакшен на Render с PostgreSQL
             config.setJdbcUrl(jdbcUrl);
-
-            if (username != null) {
-                config.setUsername(username);
-            }
-            if (password != null) {
-                config.setPassword(password);
-            }
-
-            // Оптимальные настройки для PostgreSQL
-            config.setMaximumPoolSize(5);
-            config.setMinimumIdle(1);
-            config.setIdleTimeout(30000);
-            config.setConnectionTimeout(30000);
-            config.setMaxLifetime(1800000);
-
         } else {
             // Локальная разработка с H2
-            config.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1;");
+            config.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1");
         }
 
-        HikariDataSource dataSource = new HikariDataSource(config);
-
-        // Проверяем подключение
-        try (var connection = dataSource.getConnection()) {
-            System.out.println("Database connection successful");
-        }
-
-        return dataSource;
+        return new HikariDataSource(config);
     }
 
     private static TemplateEngine createTemplateEngine() {
@@ -124,29 +100,38 @@ public class App {
         return app;
     }
 
-    private static void initializeDatabase(HikariDataSource dataSource) throws SQLException, IOException {
-        var sql = readResourceFile("schema.sql");
-        System.out.println("Initializing database with schema...");
+    private static void initializeDatabase(HikariDataSource dataSource) throws SQLException {
+        try {
+            var sql = readResourceFile("schema.sql");
+            System.out.println("Initializing database...");
 
-        try (var connection = dataSource.getConnection();
-             var statement = connection.createStatement()) {
-            statement.execute(sql);
-            System.out.println("Database initialized successfully");
+            try (var connection = dataSource.getConnection();
+                 var statement = connection.createStatement()) {
+                statement.execute(sql);
+                System.out.println("Database initialized successfully");
+            }
+        } catch (IOException e) {
+            System.out.println("Warning: schema.sql not found, using empty database");
         }
     }
 
-    public static void main(String[] args) throws IOException, SQLException {
+    public static void main(String[] args) {
         try {
             System.out.println("Starting application...");
 
-            // Загружаем драйверы
+            // Пробуем загрузить драйверы
             try {
                 Class.forName("org.postgresql.Driver");
                 System.out.println("PostgreSQL driver loaded");
             } catch (ClassNotFoundException e) {
-                System.out.println("PostgreSQL driver not found, trying H2...");
+                System.out.println("PostgreSQL driver not found");
+            }
+
+            try {
                 Class.forName("org.h2.Driver");
                 System.out.println("H2 driver loaded");
+            } catch (ClassNotFoundException e) {
+                System.out.println("H2 driver not found");
             }
 
             Javalin app = getApp();
