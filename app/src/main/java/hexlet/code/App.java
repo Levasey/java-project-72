@@ -38,7 +38,11 @@ public class App {
         }
     }
 
-    private static HikariDataSource createDataSource() throws SQLException {
+    private static boolean isPostgreSQL(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.contains("postgresql");
+    }
+
+    private static HikariDataSource createDataSource() {
         HikariConfig config = new HikariConfig();
 
         String jdbcUrl = System.getenv("JDBC_DATABASE_URL");
@@ -100,18 +104,29 @@ public class App {
         return app;
     }
 
-    private static void initializeDatabase(HikariDataSource dataSource) throws SQLException {
+    private static void initializeDatabase(HikariDataSource dataSource) throws SQLException, IOException {
+        String jdbcUrl = dataSource.getJdbcUrl();
+        String schemaFile;
+
+        if (isPostgreSQL(jdbcUrl)) {
+            schemaFile = "schema-postgres.sql";
+            System.out.println("Loading PostgreSQL schema...");
+        } else {
+            schemaFile = "schema-h2.sql";
+            System.out.println("Loading H2 schema...");
+        }
+
         try {
-            var sql = readResourceFile("schema.sql");
-            System.out.println("Initializing database...");
+            var sql = readResourceFile(schemaFile);
+            System.out.println("Initializing database with " + schemaFile + "...");
 
             try (var connection = dataSource.getConnection();
                  var statement = connection.createStatement()) {
                 statement.execute(sql);
-                System.out.println("Database initialized successfully");
+                System.out.println("Database initialized successfully with " + schemaFile);
             }
         } catch (IOException e) {
-            System.out.println("Warning: schema.sql not found, using empty database");
+            System.out.println("Schema file not found: " + schemaFile);
         }
     }
 
