@@ -40,7 +40,16 @@ content = @`
                     <th class="col-2">Дата проверки</th>
                 </tr></thead>
                 <tbody>
-
+                @for(var check : page.getChecks())
+                    <tr>
+                        <td>${check.getId()}</td>
+                        <td>${check.getStatusCode()}</td>
+                        <td>${check.getTitle() != null ? check.getTitle() : ""}</td>
+                        <td>${check.getH1() != null ? check.getH1() : ""}</td>
+                        <td>${check.getDescription() != null ? check.getDescription() : ""}</td>
+                        <td>${check.getFormattedCreatedAt()}</td>
+                    </tr>
+                @endfor
                 </tbody>
             </table>
         </div>

@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import gg.jte.ContentType;
 import gg.jte.TemplateEngine;
 import gg.jte.resolve.ResourceCodeResolver;
+import hexlet.code.controller.UrlCheckController;
 import hexlet.code.controller.UrlsController;
 import hexlet.code.dto.BasePage;
 import hexlet.code.repository.BaseRepository;
@@ -42,20 +43,18 @@ public class App {
         return jdbcUrl != null && jdbcUrl.contains("postgresql");
     }
 
+    private static String getDatabaseUrl() {
+        // Получаем url базы данных из переменной окружения DATABASE_URL
+        // Если она не установлена, используем базу в памяти
+        return System.getenv().getOrDefault("DATABASE_URL", "jdbc:h2:mem:project");
+    }
+
     private static HikariDataSource createDataSource() {
         HikariConfig config = new HikariConfig();
 
-        String jdbcUrl = System.getenv("JDBC_DATABASE_URL");
+        String jdbcUrl = getDatabaseUrl();
 
-        System.out.println("Database URL: " + (jdbcUrl != null ? jdbcUrl : "not set"));
-
-        if (jdbcUrl != null && !jdbcUrl.isEmpty()) {
-            // Продакшен на Render с PostgreSQL
-            config.setJdbcUrl(jdbcUrl);
-        } else {
-            // Локальная разработка с H2
-            config.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1");
-        }
+        config.setJdbcUrl(jdbcUrl);
 
         return new HikariDataSource(config);
     }
@@ -100,12 +99,15 @@ public class App {
         app.post("/urls", UrlsController::create);
         app.get("/urls", UrlsController::index);
         app.get("/urls/{id}", UrlsController::show);
+        app.post("/urls/{id}/checks", UrlCheckController::create);
 
         return app;
     }
 
     private static void initializeDatabase(HikariDataSource dataSource) throws SQLException, IOException {
         String jdbcUrl = dataSource.getJdbcUrl();
+        System.out.println("Using database URL: " + jdbcUrl);
+
         String schemaFile;
 
         if (isPostgreSQL(jdbcUrl)) {
@@ -127,6 +129,11 @@ public class App {
             }
         } catch (IOException e) {
             System.out.println("Schema file not found: " + schemaFile);
+            e.printStackTrace();
+        } catch (SQLException e) {
+            System.out.println("SQL error during initialization: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 

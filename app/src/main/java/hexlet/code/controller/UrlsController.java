@@ -3,6 +3,8 @@ package hexlet.code.controller;
 import hexlet.code.dto.UrlPage;
 import hexlet.code.dto.UrlsPage;
 import hexlet.code.model.Url;
+import hexlet.code.model.UrlCheck;
+import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
@@ -17,7 +19,14 @@ import static io.javalin.rendering.template.TemplateUtil.model;
 public class UrlsController {
     public static void index(Context ctx) throws SQLException {
         List<Url> urls = UrlRepository.findAll();
-        UrlsPage page = new UrlsPage(urls);
+        UrlsPage page = new UrlsPage();
+        page.setUrls(urls);
+
+        // Загружаем последние проверки для каждого URL
+        for (var url : urls) {
+            var latestCheck = UrlCheckRepository.findLatestCheck(url.getId());
+            latestCheck.ifPresent(check -> page.getLatestChecks().put(url.getId(), check));
+        }
 
         // Добавляем flash-сообщения из сессии
         String flash = ctx.sessionAttribute("flash");
@@ -83,7 +92,23 @@ public class UrlsController {
         Long id = ctx.pathParamAsClass("id", Long.class).get();
         var url = UrlRepository.findById(id)
                 .orElseThrow(() -> new NotFoundResponse("Entity with id = " + id + " not found"));
-        UrlPage page = new UrlPage(url);
+        List<UrlCheck> checks = UrlCheckRepository.findByUrlId(id);
+
+        var page = new UrlPage();
+        page.setUrl(url);
+        page.setChecks(checks);
+
+        // Добавляем flash-сообщения
+        String flash = ctx.sessionAttribute("flash");
+        String flashType = ctx.sessionAttribute("flashType");
+
+        if (flash != null) {
+            page.setFlash(flash);
+            page.setFlashType(flashType);
+            ctx.sessionAttribute("flash", null);
+            ctx.sessionAttribute("flashType", null);
+        }
+
         ctx.render("urls/show.jte", model("page", page));
     }
 }

@@ -27,8 +27,16 @@ content = @`
                     <tr>
                         <td>${url.getId()}</td>
                         <td><a href="/urls/${url.getId()}">${url.getName()}</a></td>
-                        <td></td>
-                        <td></td>
+                        <td>
+                            @if(page.getLatestChecks().get(url.getId()) != null)
+                                ${page.getLatestChecks().get(url.getId()).getFormattedCreatedAt()}
+                            @endif
+                        </td>
+                        <td>
+                            @if(page.getLatestChecks().get(url.getId()) != null)
+                                ${page.getLatestChecks().get(url.getId()).getStatusCode()}
+                            @endif
+                        </td>
                     </tr>
                 @endfor
                 </tbody>
