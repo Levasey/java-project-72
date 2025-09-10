@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.stream.Collectors;
@@ -31,26 +30,54 @@ public class App {
 
     private static String readResourceFile(String fileName) throws IOException {
         var inputStream = App.class.getClassLoader().getResourceAsStream(fileName);
+        if (inputStream == null) {
+            throw new IOException("Resource file not found: " + fileName);
+        }
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             return reader.lines().collect(Collectors.joining("\n"));
         }
     }
 
-    private static HikariDataSource createDataSource() {
+    private static HikariDataSource createDataSource() throws SQLException {
         HikariConfig config = new HikariConfig();
 
         String jdbcUrl = System.getenv("JDBC_DATABASE_URL");
+        String username = System.getenv("JDBC_DATABASE_USERNAME");
+        String password = System.getenv("JDBC_DATABASE_PASSWORD");
+
+        System.out.println("Database URL: " + (jdbcUrl != null ? jdbcUrl : "not set"));
+
         if (jdbcUrl != null && !jdbcUrl.isEmpty()) {
+            // Продакшен на Render с PostgreSQL
             config.setJdbcUrl(jdbcUrl);
-            // Добавляем параметры SSL для безопасности
-            config.addDataSourceProperty("ssl", "true");
-            config.addDataSourceProperty("sslmode", "require");
+
+            if (username != null) {
+                config.setUsername(username);
+            }
+            if (password != null) {
+                config.setPassword(password);
+            }
+
+            // Оптимальные настройки для PostgreSQL
+            config.setMaximumPoolSize(5);
+            config.setMinimumIdle(1);
+            config.setIdleTimeout(30000);
+            config.setConnectionTimeout(30000);
+            config.setMaxLifetime(1800000);
+
         } else {
             // Локальная разработка с H2
-            config.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1");
+            config.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1;");
         }
 
-        return new HikariDataSource(config);
+        HikariDataSource dataSource = new HikariDataSource(config);
+
+        // Проверяем подключение
+        try (var connection = dataSource.getConnection()) {
+            System.out.println("Database connection successful");
+        }
+
+        return dataSource;
     }
 
     private static TemplateEngine createTemplateEngine() {
@@ -61,24 +88,8 @@ public class App {
     }
 
     public static Javalin getApp() throws IOException, SQLException {
-        // Получаем порт из переменной окружения или используем по умолчанию
-        int port = getPort();
-
-        // Настраиваем подключение к БД
-        HikariConfig hikariConfig = new HikariConfig();
-
-        // Получаем URL БД из переменных окружения
-        String jdbcUrl = System.getenv("JDBC_DATABASE_URL");
-        if (jdbcUrl == null || jdbcUrl.isEmpty()) {
-            // Для локальной разработки
-            jdbcUrl = "jdbc:h2:mem:project;DB_CLOSE_DELAY=-1";
-            hikariConfig.setJdbcUrl(jdbcUrl);
-        } else {
-            // Для продакшена (Render.com)
-            hikariConfig.setJdbcUrl(jdbcUrl);
-        }
-
-        var dataSource = new HikariDataSource(hikariConfig);
+        // Создаем источник данных
+        HikariDataSource dataSource = createDataSource();
         BaseRepository.dataSource = dataSource;
 
         // Инициализация базы данных
@@ -115,24 +126,38 @@ public class App {
 
     private static void initializeDatabase(HikariDataSource dataSource) throws SQLException, IOException {
         var sql = readResourceFile("schema.sql");
+        System.out.println("Initializing database with schema...");
 
         try (var connection = dataSource.getConnection();
              var statement = connection.createStatement()) {
             statement.execute(sql);
+            System.out.println("Database initialized successfully");
         }
     }
 
     public static void main(String[] args) throws IOException, SQLException {
         try {
-            Class.forName("org.postgresql.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException("PostgreSQL Driver not found", e);
+            System.out.println("Starting application...");
+
+            // Загружаем драйверы
+            try {
+                Class.forName("org.postgresql.Driver");
+                System.out.println("PostgreSQL driver loaded");
+            } catch (ClassNotFoundException e) {
+                System.out.println("PostgreSQL driver not found, trying H2...");
+                Class.forName("org.h2.Driver");
+                System.out.println("H2 driver loaded");
+            }
+
+            Javalin app = getApp();
+            int port = getPort();
+            System.out.println("Starting server on port " + port);
+            app.start(port);
+
+        } catch (Exception e) {
+            System.out.println("Application failed to start: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1);
         }
-
-        HikariDataSource dataSource = createDataSource();
-        BaseRepository.dataSource = dataSource;
-
-        Javalin app = getApp();
-        app.start(getPort());
     }
 }
