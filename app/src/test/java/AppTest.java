@@ -214,6 +214,7 @@ public class AppTest {
             assertThat(checks).hasSize(1);
 
             UrlCheck check = checks.get(0);
+            assertThat(check).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(200);
             assertThat(check.getTitle()).isEqualTo("Test Page");
             assertThat(check.getH1()).isEqualTo("Test Header");
@@ -250,6 +251,7 @@ public class AppTest {
             assertThat(checks).hasSize(1);
 
             UrlCheck check = checks.get(0);
+            assertThat(check).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(200);
             assertThat(check.getTitle()).isNullOrEmpty();
             assertThat(check.getH1()).isNullOrEmpty();
@@ -274,6 +276,7 @@ public class AppTest {
             assertThat(checks).hasSize(1);
 
             UrlCheck check = checks.get(0);
+            assertThat(check).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(500);
         });
     }
@@ -371,6 +374,8 @@ public class AppTest {
             assertThat(checks).hasSize(2);
 
             // Проверяем порядок (последняя проверка должна быть первой)
+            assertThat(checks.get(0)).isNotNull();
+            assertThat(checks.get(1)).isNotNull();
             assertThat(checks.get(0).getStatusCode()).isEqualTo(404);
             assertThat(checks.get(1).getStatusCode()).isEqualTo(200);
         });
