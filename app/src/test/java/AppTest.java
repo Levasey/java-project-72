@@ -34,12 +34,24 @@ public class AppTest {
         // Инициализируем MockWebServer
         mockWebServer = new MockWebServer();
         mockWebServer.start();
+
+        // Ждем пока сервер полностью запустится
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @AfterEach
-    public final void tearDown() throws IOException {
+    public final void tearDown() {
         if (mockWebServer != null) {
-            mockWebServer.shutdown();
+            try {
+                mockWebServer.shutdown();
+            } catch (Exception e) {
+                // Игнорируем ошибки при закрытии, чтобы не мешать другим тестам
+                System.out.println("Error shutting down MockWebServer: " + e.getMessage());
+            }
         }
     }
 
