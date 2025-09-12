@@ -22,6 +22,7 @@ public class UrlCheckController {
                 .orElseThrow(() -> new NotFoundResponse("Url not found"));
 
         try {
+            System.out.println("Checking URL: " + url.getName());
             // Выполняем HTTP-запрос
             var response = Unirest.get(url.getName()).asString();
 
@@ -34,6 +35,8 @@ public class UrlCheckController {
             String description = doc.selectFirst("meta[name=description]") != null
                     ? doc.selectFirst("meta[name=description]").attr("content")
                     : "";
+
+            System.out.println("Extracted data - Title: " + title + ", H1: " + h1 + ", Description: " + description);
 
             // Создаем проверку
             var urlCheck = new UrlCheck();

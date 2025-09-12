@@ -15,6 +15,12 @@ public class UrlCheckRepository {
         String sql = "INSERT INTO url_checks (status_code, title, h1, description, url_id, created_at) "
                 + "VALUES (?, ?, ?, ?, ?, ?)";
 
+        System.out.println("Saving UrlCheck: statusCode=" + urlCheck.getStatusCode() +
+                ", title=" + urlCheck.getTitle() +
+                ", h1=" + urlCheck.getH1() +
+                ", description=" + urlCheck.getDescription() +
+                ", urlId=" + urlCheck.getUrlId());
+
         try (var conn = BaseRepository.dataSource.getConnection();
              var stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -25,11 +31,13 @@ public class UrlCheckRepository {
             stmt.setLong(5, urlCheck.getUrlId());
             stmt.setTimestamp(6, Timestamp.valueOf(urlCheck.getCreatedAt()));
 
-            stmt.executeUpdate();
+            int affectedRows = stmt.executeUpdate();
+            System.out.println("Affected rows: " + affectedRows);
 
             var generatedKeys = stmt.getGeneratedKeys();
             if (generatedKeys.next()) {
                 urlCheck.setId(generatedKeys.getLong(1));
+                System.out.println("Saved UrlCheck with id: " + urlCheck.getId());
             } else {
                 throw new SQLException("DB have not returned an id after saving an entity");
             }
