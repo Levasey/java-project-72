@@ -34,7 +34,6 @@ dependencies {
 
     implementation 'com.h2database:h2:2.2.224'
     implementation 'org.postgresql:postgresql:42.7.7'
-    implementation 'com.zaxxer:HikariCP:5.0.1'
 
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
     implementation 'org.slf4j:slf4j-simple:2.0.16'

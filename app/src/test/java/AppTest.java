@@ -219,6 +219,10 @@ public class AppTest {
         JavalinTest.test(app, (server, client) -> {
             var response = client.post("/urls/" + url.getId() + "/checks");
 
+            // Проверяем, что используется H2 база
+            String jdbcUrl = BaseRepository.dataSource.getJdbcUrl();
+            assertThat(jdbcUrl).contains("h2:mem");
+
             assertThat(response.code()).isEqualTo(200); // Redirect
 
             // Проверяем базу данных

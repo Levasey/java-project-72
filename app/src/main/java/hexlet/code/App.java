@@ -40,10 +40,18 @@ public class App {
     }
 
     private static boolean isPostgreSQL(String jdbcUrl) {
+        // В тестовом режиме не используем PostgreSQL
+        if (System.getProperty("test") != null) {
+            return false;
+        }
         return jdbcUrl != null && jdbcUrl.contains("postgresql");
     }
 
     private static String getDatabaseUrl() {
+        // В тестовом режиме всегда используем H2
+        if (System.getProperty("test") != null) {
+            return "jdbc:h2:mem:project;DB_CLOSE_DELAY=-1";
+        }
         // Получаем url базы данных из переменной окружения DATABASE_URL
         // Если она не установлена, используем базу в памяти
         return System.getenv().getOrDefault("DATABASE_URL", "jdbc:h2:mem:project");
