@@ -100,4 +100,37 @@ public class UrlCheckRepository {
             return Optional.empty();
         }
     }
+
+    public static Optional<UrlCheck> findById(Long id) throws SQLException {
+        String sql = "SELECT * FROM url_checks WHERE id = ?";
+
+        try (var conn = BaseRepository.dataSource.getConnection();
+             var stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, id);
+            var resultSet = stmt.executeQuery();
+
+            if (resultSet.next()) {
+                long checkId = resultSet.getLong("id");
+                int statusCode = resultSet.getInt("status_code");
+                String title = resultSet.getString("title");
+                String h1 = resultSet.getString("h1");
+                String description = resultSet.getString("description");
+                Long urlId = resultSet.getLong("url_id");
+                LocalDateTime createdAt = resultSet.getTimestamp("created_at").toLocalDateTime();
+
+                UrlCheck urlCheck = new UrlCheck();
+                urlCheck.setId(checkId);
+                urlCheck.setStatusCode(statusCode);
+                urlCheck.setTitle(title);
+                urlCheck.setH1(h1);
+                urlCheck.setDescription(description);
+                urlCheck.setUrlId(urlId);
+                urlCheck.setCreatedAt(createdAt);
+
+                return Optional.of(urlCheck);
+            }
+            return Optional.empty();
+        }
+    }
 }

@@ -2,7 +2,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import hexlet.code.App;
 import hexlet.code.model.Url;
@@ -192,6 +194,40 @@ public class AppTest {
     }
 
     @Test
+    public void testStore() throws SQLException {
+        // Создаем URL
+        Url url = new Url("https://www.example.com");
+        UrlRepository.save(url);
+
+        // Создаем проверку
+        UrlCheck urlCheck = new UrlCheck();
+        urlCheck.setStatusCode(200);
+        urlCheck.setTitle("Test Title");
+        urlCheck.setH1("Test H1");
+        urlCheck.setDescription("Test Description");
+        urlCheck.setUrlId(url.getId());
+        urlCheck.setCreatedAt(LocalDateTime.now());
+
+        // Сохраняем проверку
+        UrlCheckRepository.save(urlCheck);
+
+        // Проверяем, что проверка была сохранена
+        assertThat(urlCheck.getId()).isNotNull();
+
+        // Ищем проверку по ID
+        Optional<UrlCheck> foundCheck = UrlCheckRepository.findById(urlCheck.getId());
+        assertThat(foundCheck).isPresent();
+
+        // Проверяем поля
+        UrlCheck check = foundCheck.get();
+        assertThat(check.getStatusCode()).isEqualTo(200);
+        assertThat(check.getTitle()).isEqualTo("Test Title");
+        assertThat(check.getH1()).isEqualTo("Test H1");
+        assertThat(check.getDescription()).isEqualTo("Test Description");
+        assertThat(check.getUrlId()).isEqualTo(url.getId());
+    }
+
+    @Test
     public void testCreateUrlCheckSuccess() throws SQLException, IOException {
         // Настраиваем mock сервер
         String mockHtml = """
@@ -247,7 +283,7 @@ public class AppTest {
     }
 
     @Test
-    public void testCreateUrlCheckWithMissingElements() throws SQLException, IOException {
+    public void testCreateUrlCheckWithMissingElements() throws SQLException {
         // HTML без некоторых элементов
         String mockHtml = """
             <!DOCTYPE html>
@@ -284,7 +320,7 @@ public class AppTest {
     }
 
     @Test
-    public void testCreateUrlCheckServerError() throws SQLException, IOException {
+    public void testCreateUrlCheckServerError() throws SQLException {
         mockWebServer.enqueue(new MockResponse().setResponseCode(500));
 
         String mockUrl = mockWebServer.url("/").toString();
@@ -331,7 +367,7 @@ public class AppTest {
     }
 
     @Test
-    public void testUrlCheckDisplayOnShowPage() throws SQLException, IOException {
+    public void testUrlCheckDisplayOnShowPage() throws SQLException {
         // Настраиваем mock сервер
         String mockHtml = """
             <!DOCTYPE html>
@@ -372,7 +408,7 @@ public class AppTest {
     }
 
     @Test
-    public void testMultipleUrlChecks() throws SQLException, IOException {
+    public void testMultipleUrlChecks() throws SQLException {
         // Первая проверка
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
@@ -406,7 +442,7 @@ public class AppTest {
     }
 
     @Test
-    public void testLatestCheckDisplayOnUrlsPage() throws SQLException, IOException {
+    public void testLatestCheckDisplayOnUrlsPage() throws SQLException {
         // Настраиваем mock сервер
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(201)
