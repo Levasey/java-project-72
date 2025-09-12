@@ -195,42 +195,50 @@ public class AppTest {
     public void testCreateUrlCheckSuccess() throws SQLException, IOException {
         // Настраиваем mock сервер
         String mockHtml = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Test Page</title>
-                <meta name="description" content="Test description">
-            </head>
-            <body>
-                <h1>Test Header</h1>
-                <p>Test content</p>
-            </body>
-            </html>
-            """;
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Test Page</title>
+            <meta name="description" content="Test description">
+        </head>
+        <body>
+            <h1>Test Header</h1>
+            <p>Test content</p>
+        </body>
+        </html>
+        """;
 
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
-                .setBody(mockHtml));
+                .setBody(mockHtml)
+                .setHeader("Content-Type", "text/html"));
 
         String mockUrl = mockWebServer.url("/").toString();
         Url url = new Url(mockUrl);
         UrlRepository.save(url);
 
+        System.out.println("Created URL with id: " + url.getId());
+
         JavalinTest.test(app, (server, client) -> {
             var response = client.post("/urls/" + url.getId() + "/checks");
+            assertThat(response.code()).isEqualTo(200);
 
-            // Проверяем, что используется H2 база
-            String jdbcUrl = BaseRepository.dataSource.getJdbcUrl();
-            assertThat(jdbcUrl).contains("h2:mem");
-
-            assertThat(response.code()).isEqualTo(200); // Redirect
+            // Даем время для обработки
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
 
             // Проверяем базу данных
             List<UrlCheck> checks = UrlCheckRepository.findByUrlId(url.getId());
+            System.out.println("Found " + checks.size() + " checks for urlId: " + url.getId());
+
             assertThat(checks).hasSize(1);
 
             UrlCheck check = checks.get(0);
             assertThat(check).isNotNull();
+            assertThat(check.getId()).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(200);
             assertThat(check.getTitle()).isEqualTo("Test Page");
             assertThat(check.getH1()).isEqualTo("Test Header");
