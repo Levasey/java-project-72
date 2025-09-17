@@ -129,10 +129,8 @@ public class App {
             }
         } catch (IOException e) {
             System.out.println("Schema file not found: " + schemaFile);
-            e.printStackTrace();
         } catch (SQLException e) {
             System.out.println("SQL error during initialization: " + e.getMessage());
-            e.printStackTrace();
             throw e;
         }
     }
