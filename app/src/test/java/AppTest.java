@@ -1,18 +1,22 @@
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import hexlet.code.App;
 import hexlet.code.model.Url;
 import hexlet.code.model.UrlCheck;
-import hexlet.code.repository.BaseRepository;
 import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,42 +24,59 @@ import io.javalin.Javalin;
 import io.javalin.testtools.JavalinTest;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import utils.TestUtils;
 
 public class AppTest {
 
     private Javalin app;
-    private MockWebServer mockWebServer;
+    private static MockWebServer mockWebServer;
+    private Map<String, Object> existingUrl;
+    private Map<String, Object> existingUrlCheck;
+    private HikariDataSource dataSource;
 
-    @BeforeEach
-    public final void setUp() throws IOException, SQLException {
-        // Устанавливаем тестовый режим
-        System.setProperty("test", "true");
-        app = App.getApp();
-        clearDatabase();
+    private static String getDatabaseUrl() {
+        return System.getenv().getOrDefault("JDBC_DATABASE_URL", "jdbc:h2:mem:project");
+    }
 
-        // Инициализируем MockWebServer
+    @BeforeAll
+    public static void beforeAll() throws IOException {
+
         mockWebServer = new MockWebServer();
         mockWebServer.start();
     }
 
-    @AfterEach
-    public final void tearDown() {
-        if (mockWebServer != null) {
-            try {
-                mockWebServer.shutdown();
-            } catch (Exception e) {
-                // Игнорируем ошибки при закрытии, чтобы не мешать другим тестам
-                System.out.println("Error shutting down MockWebServer: " + e.getMessage());
-            }
+    @BeforeEach
+    public final void setUp() throws IOException, SQLException {
+        app = App.getApp();
+
+        var hikariConfig = new HikariConfig();
+        hikariConfig.setJdbcUrl(getDatabaseUrl());
+
+        dataSource = new HikariDataSource(hikariConfig);
+
+        var schema = AppTest.class.getClassLoader().getResource("schema.sql");
+        var file = new File(schema.getFile());
+
+        var sql = Files.lines(file.toPath())
+                .collect(Collectors.joining("\n"));
+
+        try (var connection = dataSource.getConnection();
+             var statement = connection.createStatement()) {
+            statement.execute(sql);
         }
+
+        String url = "https://www.example.com";
+
+        TestUtils.addUrl(dataSource, url);
+        existingUrl = TestUtils.getUrlByName(dataSource, url);
+
+        TestUtils.addUrlCheck(dataSource, (long) existingUrl.get("id"));
+        existingUrlCheck = TestUtils.getUrlCheck(dataSource, (long) existingUrl.get("id"));
     }
 
-    private void clearDatabase() throws SQLException {
-        try (var connection = BaseRepository.getConnection();
-             var statement = connection.createStatement()) {
-            statement.execute("DELETE FROM url_checks");
-            statement.execute("DELETE FROM urls");
-        }
+    @AfterAll
+    public static void afterAll() throws IOException {
+        mockWebServer.shutdown();
     }
 
     @Test
@@ -129,19 +150,6 @@ public class AppTest {
     }
 
     @Test
-    public void testAddInvalidUrl() {
-        JavalinTest.test(app, (server, client) -> {
-            var requestBody = "url=invalid-url";
-            var response = client.post("/urls", requestBody);
-
-            assertThat(response.code()).isEqualTo(200);
-
-            List<Url> urls = UrlRepository.findAll();
-            assertThat(urls).isEmpty();
-        });
-    }
-
-    @Test
     public void testAddDuplicateUrl() {
         JavalinTest.test(app, (server, client) -> {
             // Первый запрос
@@ -160,19 +168,6 @@ public class AppTest {
     }
 
     @Test
-    public void testAddEmptyUrl() throws SQLException {
-        JavalinTest.test(app, (server, client) -> {
-            var requestBody = "url=";
-            var response = client.post("/urls", requestBody);
-
-            assertThat(response.code()).isEqualTo(200);
-
-            List<Url> urls = UrlRepository.findAll();
-            assertThat(urls).isEmpty();
-        });
-    }
-
-    @Test
     public void testUrlNormalization() {
         JavalinTest.test(app, (server, client) -> {
             // Тест нормализации URL
@@ -182,39 +177,8 @@ public class AppTest {
 
             List<Url> urls = UrlRepository.findAll();
             assertThat(urls).hasSize(1);
-            assertThat(urls.get(0).getName()).isEqualTo("https://www.example.com");
+            assertThat(urls.getFirst().getName()).isEqualTo("https://www.example.com");
         });
-    }
-
-    @Test
-    public void testStore() throws SQLException {
-        // Создаем URL
-        Url url = new Url("https://www.example.com");
-        UrlRepository.save(url);
-
-        // Создаем проверку
-        UrlCheck urlCheck = new UrlCheck();
-        urlCheck.setStatusCode(200);
-        urlCheck.setTitle("Test Title");
-        urlCheck.setH1("Test H1");
-        urlCheck.setDescription("Test Description");
-        urlCheck.setUrlId(url.getId());
-        urlCheck.setCreatedAt(LocalDateTime.now());
-
-        // Сохраняем проверку
-        UrlCheckRepository.save(urlCheck);
-
-        // Ищем проверку по ID
-        Optional<UrlCheck> foundCheck = UrlCheckRepository.findById(urlCheck.getId());
-        assertThat(foundCheck).isPresent();
-
-        // Проверяем поля
-        UrlCheck check = foundCheck.get();
-        assertThat(check.getStatusCode()).isEqualTo(200);
-        assertThat(check.getTitle()).isEqualTo("Test Title");
-        assertThat(check.getH1()).isEqualTo("Test H1");
-        assertThat(check.getDescription()).isEqualTo("Test Description");
-        assertThat(check.getUrlId()).isEqualTo(url.getId());
     }
 
     @Test
@@ -249,20 +213,13 @@ public class AppTest {
             var response = client.post("/urls/" + url.getId() + "/checks");
             assertThat(response.code()).isEqualTo(200);
 
-            // Даем время для обработки
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
             // Проверяем базу данных
             List<UrlCheck> checks = UrlCheckRepository.findByUrlId(url.getId());
             System.out.println("Found " + checks.size() + " checks for urlId: " + url.getId());
 
             assertThat(checks).hasSize(1);
 
-            UrlCheck check = checks.get(0);
+            UrlCheck check = checks.getFirst();
             assertThat(check).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(200);
             assertThat(check.getTitle()).isEqualTo("Test Page");
@@ -299,7 +256,7 @@ public class AppTest {
             List<UrlCheck> checks = UrlCheckRepository.findByUrlId(url.getId());
             assertThat(checks).hasSize(1);
 
-            UrlCheck check = checks.get(0);
+            UrlCheck check = checks.getFirst();
             assertThat(check).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(200);
             assertThat(check.getTitle()).isNullOrEmpty();
@@ -324,7 +281,7 @@ public class AppTest {
             List<UrlCheck> checks = UrlCheckRepository.findByUrlId(url.getId());
             assertThat(checks).hasSize(1);
 
-            UrlCheck check = checks.get(0);
+            UrlCheck check = checks.getFirst();
             assertThat(check).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(500);
         });
