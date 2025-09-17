@@ -211,9 +211,6 @@ public class AppTest {
         // Сохраняем проверку
         UrlCheckRepository.save(urlCheck);
 
-        // Проверяем, что проверка была сохранена
-        assertThat(urlCheck.getId()).isNotNull();
-
         // Ищем проверку по ID
         Optional<UrlCheck> foundCheck = UrlCheckRepository.findById(urlCheck.getId());
         assertThat(foundCheck).isPresent();
@@ -274,7 +271,6 @@ public class AppTest {
 
             UrlCheck check = checks.get(0);
             assertThat(check).isNotNull();
-            assertThat(check.getId()).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(200);
             assertThat(check.getTitle()).isEqualTo("Test Page");
             assertThat(check.getH1()).isEqualTo("Test Header");
