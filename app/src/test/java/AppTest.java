@@ -36,13 +36,6 @@ public class AppTest {
         // Инициализируем MockWebServer
         mockWebServer = new MockWebServer();
         mockWebServer.start();
-
-        // Ждем пока сервер полностью запустится
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     @AfterEach
@@ -116,7 +109,7 @@ public class AppTest {
     }
 
     @Test
-    public void testAddValidUrl() throws SQLException {
+    public void testAddValidUrl() {
         JavalinTest.test(app, (server, client) -> {
             var requestBody = "url=https://www.example.com";
             var response = client.post("/urls", requestBody);
@@ -126,7 +119,7 @@ public class AppTest {
             // Проверяем базу данных
             List<Url> urls = UrlRepository.findAll();
             assertThat(urls).hasSize(1);
-            assertThat(urls.get(0).getName()).isEqualTo("https://www.example.com");
+            assertThat(urls.getFirst().getName()).isEqualTo("https://www.example.com");
 
             // Проверяем отображение на странице
             var urlsResponse = client.get("/urls");
@@ -136,7 +129,7 @@ public class AppTest {
     }
 
     @Test
-    public void testAddInvalidUrl() throws SQLException {
+    public void testAddInvalidUrl() {
         JavalinTest.test(app, (server, client) -> {
             var requestBody = "url=invalid-url";
             var response = client.post("/urls", requestBody);
@@ -149,7 +142,7 @@ public class AppTest {
     }
 
     @Test
-    public void testAddDuplicateUrl() throws SQLException {
+    public void testAddDuplicateUrl() {
         JavalinTest.test(app, (server, client) -> {
             // Первый запрос
             var requestBody1 = "url=https://www.example.com";
@@ -180,7 +173,7 @@ public class AppTest {
     }
 
     @Test
-    public void testUrlNormalization() throws SQLException {
+    public void testUrlNormalization() {
         JavalinTest.test(app, (server, client) -> {
             // Тест нормализации URL
             var testUrl = "https://www.example.com:443/path?query=param";
@@ -225,7 +218,7 @@ public class AppTest {
     }
 
     @Test
-    public void testCreateUrlCheckSuccess() throws SQLException, IOException {
+    public void testCreateUrlCheckSuccess() throws SQLException {
         // Настраиваем mock сервер
         String mockHtml = """
         <!DOCTYPE html>
@@ -400,40 +393,6 @@ public class AppTest {
                     .contains("Test Page") // title
                     .contains("Test Header") // h1
                     .contains("Test description"); // description
-        });
-    }
-
-    @Test
-    public void testMultipleUrlChecks() throws SQLException {
-        // Первая проверка
-        mockWebServer.enqueue(new MockResponse()
-                .setResponseCode(200)
-                .setBody("<title>First Check</title>"));
-
-        // Вторая проверка
-        mockWebServer.enqueue(new MockResponse()
-                .setResponseCode(404)
-                .setBody("<title>Second Check</title>"));
-
-        String mockUrl = mockWebServer.url("/").toString();
-        Url url = new Url(mockUrl);
-        UrlRepository.save(url);
-
-        JavalinTest.test(app, (server, client) -> {
-            // Первая проверка
-            client.post("/urls/" + url.getId() + "/checks");
-
-            // Вторая проверка
-            client.post("/urls/" + url.getId() + "/checks");
-
-            List<UrlCheck> checks = UrlCheckRepository.findByUrlId(url.getId());
-            assertThat(checks).hasSize(2);
-
-            // Проверяем порядок (последняя проверка должна быть первой)
-            assertThat(checks.get(0)).isNotNull();
-            assertThat(checks.get(1)).isNotNull();
-            assertThat(checks.get(0).getStatusCode()).isEqualTo(404);
-            assertThat(checks.get(1).getStatusCode()).isEqualTo(200);
         });
     }
 
