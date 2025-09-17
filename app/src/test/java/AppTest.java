@@ -12,7 +12,7 @@ import hexlet.code.model.UrlCheck;
 import hexlet.code.repository.BaseRepository;
 import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +24,7 @@ import okhttp3.mockwebserver.MockWebServer;
 public class AppTest {
 
     private Javalin app;
-    private MockWebServer mockWebServer;
+    private static MockWebServer mockWebServer;
 
     @BeforeEach
     public final void setUp() throws IOException, SQLException {
@@ -36,16 +36,9 @@ public class AppTest {
         mockWebServer.start();
     }
 
-    @AfterEach
-    public final void tearDown() {
-        if (mockWebServer != null) {
-            try {
-                mockWebServer.shutdown();
-            } catch (Exception e) {
-                // Игнорируем ошибки при закрытии, чтобы не мешать другим тестам
-                System.out.println("Error shutting down MockWebServer: " + e.getMessage());
-            }
-        }
+    @AfterAll
+    public static final void tearDown() throws IOException {
+        mockWebServer.shutdown();
     }
 
     private void clearDatabase() throws SQLException {
@@ -219,18 +212,18 @@ public class AppTest {
     public void testCreateUrlCheckSuccess() throws SQLException {
         // Настраиваем mock сервер
         String mockHtml = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Test Page</title>
-            <meta name="description" content="Test description">
-        </head>
-        <body>
-            <h1>Test Header</h1>
-            <p>Test content</p>
-        </body>
-        </html>
-        """;
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Test Page</title>
+                    <meta name="description" content="Test description">
+                </head>
+                <body>
+                    <h1>Test Header</h1>
+                    <p>Test content</p>
+                </body>
+                </html>
+                """;
 
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
@@ -273,13 +266,13 @@ public class AppTest {
     public void testCreateUrlCheckWithMissingElements() throws SQLException {
         // HTML без некоторых элементов
         String mockHtml = """
-            <!DOCTYPE html>
-            <html>
-            <body>
-                <p>Test content</p>
-            </body>
-            </html>
-            """;
+                <!DOCTYPE html>
+                <html>
+                <body>
+                    <p>Test content</p>
+                </body>
+                </html>
+                """;
 
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
@@ -357,17 +350,17 @@ public class AppTest {
     public void testUrlCheckDisplayOnShowPage() throws SQLException {
         // Настраиваем mock сервер
         String mockHtml = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Test Page</title>
-                <meta name="description" content="Test description">
-            </head>
-            <body>
-                <h1>Test Header</h1>
-            </body>
-            </html>
-            """;
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Test Page</title>
+                    <meta name="description" content="Test description">
+                </head>
+                <body>
+                    <h1>Test Header</h1>
+                </body>
+                </html>
+                """;
 
         mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
