@@ -29,7 +29,6 @@ public class AppTest {
     @BeforeEach
     public final void setUp() throws IOException, SQLException {
         app = App.getApp();
-        clearDatabase();
 
         // Инициализируем MockWebServer
         mockWebServer = new MockWebServer();
@@ -39,14 +38,6 @@ public class AppTest {
     @AfterAll
     public static final void tearDown() throws IOException {
         mockWebServer.shutdown();
-    }
-
-    private void clearDatabase() throws SQLException {
-        try (var connection = BaseRepository.getConnection();
-             var statement = connection.createStatement()) {
-            statement.execute("DELETE FROM url_checks");
-            statement.execute("DELETE FROM urls");
-        }
     }
 
     @Test
@@ -151,7 +142,7 @@ public class AppTest {
     }
 
     @Test
-    public void testAddEmptyUrl() throws SQLException {
+    public void testAddEmptyUrl() {
         JavalinTest.test(app, (server, client) -> {
             var requestBody = "url=";
             var response = client.post("/urls", requestBody);
@@ -290,7 +281,7 @@ public class AppTest {
             List<UrlCheck> checks = UrlCheckRepository.findByUrlId(url.getId());
             assertThat(checks).hasSize(1);
 
-            UrlCheck check = checks.get(0);
+            UrlCheck check = checks.getFirst();
             assertThat(check).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(200);
             assertThat(check.getTitle()).isNullOrEmpty();
@@ -315,7 +306,7 @@ public class AppTest {
             List<UrlCheck> checks = UrlCheckRepository.findByUrlId(url.getId());
             assertThat(checks).hasSize(1);
 
-            UrlCheck check = checks.get(0);
+            UrlCheck check = checks.getFirst();
             assertThat(check).isNotNull();
             assertThat(check.getStatusCode()).isEqualTo(500);
         });
