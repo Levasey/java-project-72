@@ -56,6 +56,11 @@ public class App {
 
         config.setJdbcUrl(jdbcUrl);
 
+        // Для H2 настроить автоматическую фиксацию
+        if (jdbcUrl.contains("h2:mem")) {
+            config.addDataSourceProperty("AUTOCOMMIT", "true");
+        }
+
         return new HikariDataSource(config);
     }
 
