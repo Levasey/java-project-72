@@ -137,34 +137,9 @@ public class App {
         }
     }
 
-    public static void main(String[] args) {
-        try {
-            System.out.println("Starting application...");
-
-            // Пробуем загрузить драйверы
-            try {
-                Class.forName("org.postgresql.Driver");
-                System.out.println("PostgreSQL driver loaded");
-            } catch (ClassNotFoundException e) {
-                System.out.println("PostgreSQL driver not found");
-            }
-
-            try {
-                Class.forName("org.h2.Driver");
-                System.out.println("H2 driver loaded");
-            } catch (ClassNotFoundException e) {
-                System.out.println("H2 driver not found");
-            }
-
-            Javalin app = getApp();
-            int port = getPort();
-            System.out.println("Starting server on port " + port);
-            app.start(port);
-
-        } catch (Exception e) {
-            System.out.println("Application failed to start: " + e.getMessage());
-            e.printStackTrace();
-            System.exit(1);
-        }
+    public static void main(String[] args) throws SQLException, IOException {
+        Javalin app = getApp();
+        int port = getPort();
+        app.start(port);
     }
 }
