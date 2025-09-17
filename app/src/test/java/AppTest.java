@@ -28,8 +28,6 @@ public class AppTest {
 
     @BeforeEach
     public final void setUp() throws IOException, SQLException {
-        // Устанавливаем тестовый режим
-        System.setProperty("test", "true");
         app = App.getApp();
         clearDatabase();
 
