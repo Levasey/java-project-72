@@ -24,12 +24,8 @@ public class UrlCheckController {
 
         try {
             System.out.println("Checking URL: " + url.getName());
-
-            // Добавляем таймауты для запроса
-            var response = Unirest.get(url.getName())
-                    .connectTimeout(5000)
-                    .socketTimeout(5000)
-                    .asString();
+            // Выполняем HTTP-запрос
+            var response = Unirest.get(url.getName()).asString();
 
             // Парсим HTML
             Document doc = Jsoup.parse(response.getBody());
