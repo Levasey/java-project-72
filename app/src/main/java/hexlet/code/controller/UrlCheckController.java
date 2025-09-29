@@ -25,70 +25,46 @@ public class UrlCheckController {
         try {
             System.out.println("Checking URL: " + url.getName());
 
-            // Выполняем HTTP-запрос с таймаутами
+            // Добавляем таймауты для запроса
             var response = Unirest.get(url.getName())
                     .connectTimeout(5000)
                     .socketTimeout(5000)
                     .asString();
 
-            int statusCode = response.getStatus();
+            // Парсим HTML
+            Document doc = Jsoup.parse(response.getBody());
 
-            // Парсим HTML только если статус код успешный
-            String title = "";
-            String h1 = "";
-            String description = "";
+            // Извлекаем данные
+            String title = doc.title();
+            String h1 = doc.selectFirst("h1") != null ? Objects.requireNonNull(doc.selectFirst("h1")).text() : "";
+            String description = doc.selectFirst("meta[name=description]") != null
+                    ? Objects.requireNonNull(doc.selectFirst("meta[name=description]")).attr("content")
+                    : "";
 
-            if (statusCode >= 200 && statusCode < 400) {
-                try {
-                    Document doc = Jsoup.parse(response.getBody());
-                    doc.title();
-                    title = doc.title();
-                    h1 = doc.selectFirst("h1") != null ? Objects.requireNonNull(doc.selectFirst("h1")).text() : "";
-                    description = doc.selectFirst("meta[name=description]") != null
-                            ? Objects.requireNonNull(doc.selectFirst("meta[name=description]")).attr("content")
-                            : "";
-                } catch (Exception e) {
-                    System.out.println("Error parsing HTML: " + e.getMessage());
-                    // Продолжаем с пустыми значениями
-                }
-            }
+            System.out.println("Extracted data - Title: " + title + ", H1: " + h1 + ", Description: " + description);
 
-            System.out.println("Extracted data - Status: " + statusCode + ", Title: " + title + ", H1: " + h1 + ", Description: " + description);
+            // Создаем проверку
+            var urlCheck = new UrlCheck();
+            urlCheck.setStatusCode(response.getStatus());
+            urlCheck.setTitle(title);
+            urlCheck.setH1(h1);
+            urlCheck.setDescription(description);
+            urlCheck.setUrlId(id);
+            urlCheck.setCreatedAt(LocalDateTime.now());
 
-            // Создаем и сохраняем проверку
-            createAndSaveUrlCheck(id, statusCode, title, h1, description, ctx, true);
+            // Сохраняем проверку
+            UrlCheckRepository.save(urlCheck);
+
+            // Устанавливаем flash-сообщение
+            ctx.sessionAttribute("flash", "Страница успешно проверена");
+            ctx.sessionAttribute("flashType", "success");
 
         } catch (UnirestException e) {
-            System.out.println("Unirest exception: " + e.getMessage());
-            // Сохраняем проверку с информацией об ошибке
-            createAndSaveUrlCheck(id, 0, "", "", "", ctx, false);
-        } catch (Exception e) {
-            System.out.println("General exception: " + e.getMessage());
-            // Сохраняем проверку с информацией об ошибке
-            createAndSaveUrlCheck(id, 0, "", "", "", ctx, false);
+            // Устанавливаем сообщение об ошибке
+            ctx.sessionAttribute("flash", "Невозможно проверить страницу: " + e.getMessage());
+            ctx.sessionAttribute("flashType", "danger");
         }
 
         ctx.redirect("/urls/" + id);
-    }
-
-    private static void createAndSaveUrlCheck(Long id, int statusCode, String title, String h1,
-                                              String description, Context ctx, boolean success) throws SQLException {
-        var urlCheck = new UrlCheck();
-        urlCheck.setStatusCode(statusCode);
-        urlCheck.setTitle(title != null ? title : "");
-        urlCheck.setH1(h1 != null ? h1 : "");
-        urlCheck.setDescription(description != null ? description : "");
-        urlCheck.setUrlId(id);
-        urlCheck.setCreatedAt(LocalDateTime.now());
-
-        UrlCheckRepository.save(urlCheck);
-
-        if (success) {
-            ctx.sessionAttribute("flash", "Страница успешно проверена");
-            ctx.sessionAttribute("flashType", "success");
-        } else {
-            ctx.sessionAttribute("flash", "Ошибка при проверке страницы");
-            ctx.sessionAttribute("flashType", "danger");
-        }
     }
 }
