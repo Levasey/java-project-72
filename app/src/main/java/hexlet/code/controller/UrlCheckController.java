@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class UrlCheckController {
     public static void create(Context ctx) throws SQLException {
@@ -24,46 +25,70 @@ public class UrlCheckController {
         try {
             System.out.println("Checking URL: " + url.getName());
 
-            // Добавляем таймауты для запроса
+            // Выполняем HTTP-запрос с таймаутами
             var response = Unirest.get(url.getName())
                     .connectTimeout(5000)
                     .socketTimeout(5000)
                     .asString();
 
-            // Парсим HTML
-            Document doc = Jsoup.parse(response.getBody());
+            int statusCode = response.getStatus();
 
-            // Извлекаем данные
-            String title = doc.title();
-            String h1 = doc.selectFirst("h1") != null ? doc.selectFirst("h1").text() : "";
-            String description = doc.selectFirst("meta[name=description]") != null
-                    ? doc.selectFirst("meta[name=description]").attr("content")
-                    : "";
+            // Парсим HTML только если статус код успешный
+            String title = "";
+            String h1 = "";
+            String description = "";
 
-            System.out.println("Extracted data - Title: " + title + ", H1: " + h1 + ", Description: " + description);
+            if (statusCode >= 200 && statusCode < 400) {
+                try {
+                    Document doc = Jsoup.parse(response.getBody());
+                    doc.title();
+                    title = doc.title();
+                    h1 = doc.selectFirst("h1") != null ? Objects.requireNonNull(doc.selectFirst("h1")).text() : "";
+                    description = doc.selectFirst("meta[name=description]") != null
+                            ? Objects.requireNonNull(doc.selectFirst("meta[name=description]")).attr("content")
+                            : "";
+                } catch (Exception e) {
+                    System.out.println("Error parsing HTML: " + e.getMessage());
+                    // Продолжаем с пустыми значениями
+                }
+            }
 
-            // Создаем проверку
-            var urlCheck = new UrlCheck();
-            urlCheck.setStatusCode(response.getStatus());
-            urlCheck.setTitle(title);
-            urlCheck.setH1(h1);
-            urlCheck.setDescription(description);
-            urlCheck.setUrlId(id);
-            urlCheck.setCreatedAt(LocalDateTime.now());
+            System.out.println("Extracted data - Status: " + statusCode + ", Title: " + title + ", H1: " + h1 + ", Description: " + description);
 
-            // Сохраняем проверку
-            UrlCheckRepository.save(urlCheck);
-
-            // Устанавливаем flash-сообщение
-            ctx.sessionAttribute("flash", "Страница успешно проверена");
-            ctx.sessionAttribute("flashType", "success");
+            // Создаем и сохраняем проверку
+            createAndSaveUrlCheck(id, statusCode, title, h1, description, ctx, true);
 
         } catch (UnirestException e) {
-            // Устанавливаем сообщение об ошибке
-            ctx.sessionAttribute("flash", "Невозможно проверить страницу: " + e.getMessage());
-            ctx.sessionAttribute("flashType", "danger");
+            System.out.println("Unirest exception: " + e.getMessage());
+            // Сохраняем проверку с информацией об ошибке
+            createAndSaveUrlCheck(id, 0, "", "", "", ctx, false);
+        } catch (Exception e) {
+            System.out.println("General exception: " + e.getMessage());
+            // Сохраняем проверку с информацией об ошибке
+            createAndSaveUrlCheck(id, 0, "", "", "", ctx, false);
         }
 
         ctx.redirect("/urls/" + id);
+    }
+
+    private static void createAndSaveUrlCheck(Long id, int statusCode, String title, String h1,
+                                              String description, Context ctx, boolean success) throws SQLException {
+        var urlCheck = new UrlCheck();
+        urlCheck.setStatusCode(statusCode);
+        urlCheck.setTitle(title != null ? title : "");
+        urlCheck.setH1(h1 != null ? h1 : "");
+        urlCheck.setDescription(description != null ? description : "");
+        urlCheck.setUrlId(id);
+        urlCheck.setCreatedAt(LocalDateTime.now());
+
+        UrlCheckRepository.save(urlCheck);
+
+        if (success) {
+            ctx.sessionAttribute("flash", "Страница успешно проверена");
+            ctx.sessionAttribute("flashType", "success");
+        } else {
+            ctx.sessionAttribute("flash", "Ошибка при проверке страницы");
+            ctx.sessionAttribute("flashType", "danger");
+        }
     }
 }
