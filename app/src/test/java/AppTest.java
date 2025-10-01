@@ -344,9 +344,15 @@ public class AppTest {
 
             assertThat(response.code()).isEqualTo(200);
 
-            // Проверяем, что проверка не была создана при сетевой ошибке
             List<UrlCheck> checks = UrlCheckRepository.findByUrlId(url.getId());
-            assertThat(checks).isEmpty();
+            assertThat(checks).hasSize(1); // Теперь ожидаем 1 проверку
+
+            UrlCheck check = checks.getFirst();
+            assertThat(check).isNotNull();
+            assertThat(check.getStatusCode()).isEqualTo(0); // Код 0 указывает на ошибку сети
+            assertThat(check.getTitle()).isEmpty();
+            assertThat(check.getH1()).isEmpty();
+            assertThat(check.getDescription()).isEmpty();
         });
     }
 
