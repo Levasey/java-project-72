@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import com.zaxxer.hikari.HikariDataSource;
 import hexlet.code.App;
 import hexlet.code.model.Url;
 import hexlet.code.model.UrlCheck;
@@ -26,7 +25,6 @@ public class AppTest {
 
     private Javalin app;
     private static MockWebServer mockWebServer;
-    private HikariDataSource dataSource;
 
     private static Path getFixturePath(String fileName) {
         return Paths.get("src", "test", "resources", "fixtures", fileName)
@@ -38,16 +36,20 @@ public class AppTest {
         return Files.readString(filePath).trim();
     }
 
-    private static String getDatabaseUrl() {
-        return System.getenv().getOrDefault("JDBC_DATABASE_URL", "jdbc:h2:mem:project");
-    }
-
     @BeforeAll
     public static void beforeAll() throws IOException {
         mockWebServer = new MockWebServer();
+
+        // Настраиваем ответ для любого пути
         MockResponse mockedResponse = new MockResponse()
-                .setBody(readFixture("index.html"));
+                .setBody(readFixture("index.html"))
+                .setResponseCode(200);
+
+        // Добавляем несколько ответов на случай multiple requests
         mockWebServer.enqueue(mockedResponse);
+        mockWebServer.enqueue(mockedResponse);
+        mockWebServer.enqueue(mockedResponse);
+
         mockWebServer.start();
     }
 
