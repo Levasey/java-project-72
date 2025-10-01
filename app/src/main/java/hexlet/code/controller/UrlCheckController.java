@@ -6,113 +6,61 @@ import hexlet.code.repository.UrlRepository;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class UrlCheckController {
     public static void create(Context ctx) throws SQLException {
         var id = ctx.pathParamAsClass("id", Long.class).get();
 
+        // Находим URL по ID
         var url = UrlRepository.findById(id)
                 .orElseThrow(() -> new NotFoundResponse("Url not found"));
 
-        // Для тестового окружения создаем mock данные
-        if (isTestEnvironment() && url.getName().contains("localhost")) {
-            createMockUrlCheck(id, ctx);
-            return;
-        }
-
         try {
             System.out.println("Checking URL: " + url.getName());
+            // Выполняем HTTP-запрос
+            var response = Unirest.get(url.getName()).asString();
 
-            var response = Unirest.get(url.getName())
-                    .connectTimeout(5000)
-                    .socketTimeout(5000)
-                    .asString();
+            // Парсим HTML
+            Document doc = Jsoup.parse(response.getBody());
 
-            int statusCode = response.getStatus();
+            // Извлекаем данные
+            String title = doc.title();
+            String h1 = doc.selectFirst("h1") != null ? Objects.requireNonNull(doc.selectFirst("h1")).text() : "";
+            String description = doc.selectFirst("meta[name=description]") != null
+                    ? Objects.requireNonNull(doc.selectFirst("meta[name=description]")).attr("content")
+                    : "";
 
-            String title = "";
-            String h1 = "";
-            String description = "";
+            System.out.println("Extracted data - Title: " + title + ", H1: " + h1 + ", Description: " + description);
 
-            if (statusCode >= 200 && statusCode < 400) {
-                try {
-                    Document doc = Jsoup.parse(response.getBody());
-                    title = doc.title() != null ? doc.title() : "";
-                    h1 = doc.selectFirst("h1") != null ? doc.selectFirst("h1").text() : "";
-                    description = doc.selectFirst("meta[name=description]") != null
-                            ? doc.selectFirst("meta[name=description]").attr("content")
-                            : "";
-                } catch (Exception e) {
-                    System.out.println("Error parsing HTML: " + e.getMessage());
-                }
-            }
+            // Создаем проверку
+            var urlCheck = new UrlCheck();
+            urlCheck.setStatusCode(response.getStatus());
+            urlCheck.setTitle(title);
+            urlCheck.setH1(h1);
+            urlCheck.setDescription(description);
+            urlCheck.setUrlId(id);
+            urlCheck.setCreatedAt(LocalDateTime.now());
 
-            System.out.println("Extracted data - Status: " + statusCode + ", Title: " + title + ", H1: " + h1 +
-                    ", Description: " + description);
+            // Сохраняем проверку
+            UrlCheckRepository.save(urlCheck);
 
-            createAndSaveUrlCheck(id, statusCode, title, h1, description, ctx, true);
+            // Устанавливаем flash-сообщение
+            ctx.sessionAttribute("flash", "Страница успешно проверена");
+            ctx.sessionAttribute("flashType", "success");
 
-        } catch (Exception e) {
-            System.out.println("Exception during URL check: " + e.getMessage());
-            // Сохраняем проверку с информацией об ошибке
-            createAndSaveUrlCheck(id, 0, "", "", "", ctx, false);
+        } catch (UnirestException e) {
+            // Устанавливаем сообщение об ошибке
+            ctx.sessionAttribute("flash", "Невозможно проверить страницу: " + e.getMessage());
+            ctx.sessionAttribute("flashType", "danger");
         }
 
         ctx.redirect("/urls/" + id);
-    }
-
-    private static void createMockUrlCheck(Long id, Context ctx) throws SQLException {
-        System.out.println("Creating mock URL check for test environment");
-
-        // Создаем mock данные, которые ожидает тест
-        var urlCheck = new UrlCheck();
-        urlCheck.setStatusCode(200);
-        urlCheck.setTitle("Test page");
-        urlCheck.setH1("Do not expect a miracle, miracles yourself!");
-        urlCheck.setDescription("statements of great people");
-        urlCheck.setUrlId(id);
-        urlCheck.setCreatedAt(LocalDateTime.now());
-
-        UrlCheckRepository.save(urlCheck);
-
-        ctx.sessionAttribute("flash", "Страница успешно проверена");
-        ctx.sessionAttribute("flashType", "success");
-
-        System.out.println("Mock URL check created successfully");
-    }
-
-    private static void createAndSaveUrlCheck(Long id, int statusCode, String title, String h1,
-                                              String description, Context ctx, boolean success) throws SQLException {
-        var urlCheck = new UrlCheck();
-        urlCheck.setStatusCode(statusCode);
-        urlCheck.setTitle(title != null ? title : "");
-        urlCheck.setH1(h1 != null ? h1 : "");
-        urlCheck.setDescription(description != null ? description : "");
-        urlCheck.setUrlId(id);
-        urlCheck.setCreatedAt(LocalDateTime.now());
-
-        UrlCheckRepository.save(urlCheck);
-
-        if (success) {
-            ctx.sessionAttribute("flash", "Страница успешно проверена");
-            ctx.sessionAttribute("flashType", "success");
-        } else {
-            ctx.sessionAttribute("flash", "Ошибка при проверке страницы");
-            ctx.sessionAttribute("flashType", "danger");
-        }
-    }
-
-    private static boolean isTestEnvironment() {
-        // Проверяем, запущены ли мы в тестовом окружении
-        return System.getenv("TEST_ENV") != null
-                || "test".equals(System.getProperty("env"))
-                || java.lang.management.ManagementFactory.getRuntimeMXBean()
-                .getInputArguments().toString().contains("test")
-                || Thread.currentThread().getStackTrace()[2].getClassName().contains("Test");
     }
 }
