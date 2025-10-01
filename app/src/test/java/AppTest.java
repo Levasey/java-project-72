@@ -187,7 +187,7 @@ public class AppTest {
 
             List<Url> urls = UrlRepository.findAll();
             assertThat(urls).hasSize(1);
-            assertThat(urls.get(0).getName()).isEqualTo("https://www.example.com");
+            assertThat(urls.getFirst().getName()).isEqualTo("https://www.example.com");
         });
     }
 
@@ -231,7 +231,7 @@ public class AppTest {
     }
 
     @Test
-    void testUrlCheckTestStore() throws IOException, SQLException {
+    void testUrlCheckTestStore() {
         String url = mockWebServer.url("/").toString().replaceAll("/$", "");
 
         JavalinTest.test(app, (server, client) -> {
@@ -261,7 +261,7 @@ public class AppTest {
             List<UrlCheck> checks = UrlCheckRepository.findByUrlId(actualUrl.getId());
             assertThat(checks).isNotEmpty();
 
-            UrlCheck actualCheck = checks.get(0);
+            UrlCheck actualCheck = checks.getFirst();
             assertThat(actualCheck).isNotNull();
             assertThat(actualCheck.getTitle()).isEqualTo("Test page");
             assertThat(actualCheck.getH1()).isEqualTo("Do not expect a miracle, miracles yourself!");

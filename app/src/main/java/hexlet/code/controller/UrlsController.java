@@ -6,6 +6,7 @@ import hexlet.code.model.Url;
 import hexlet.code.model.UrlCheck;
 import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
+import hexlet.code.utils.FlashUtil;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 
@@ -29,16 +30,7 @@ public class UrlsController {
         }
 
         // Добавляем flash-сообщения из сессии
-        String flash = ctx.sessionAttribute("flash");
-        String flashType = ctx.sessionAttribute("flashType");
-
-        if (flash != null) {
-            page.setFlash(flash);
-            page.setFlashType(flashType);
-            // Очищаем flash-сообщения после использования
-            ctx.sessionAttribute("flash", null);
-            ctx.sessionAttribute("flashType", null);
-        }
+        FlashUtil.setFlashToPage(ctx, page);
 
         ctx.render("urls/index.jte", model("page", page));
     }
@@ -98,16 +90,7 @@ public class UrlsController {
         page.setUrl(url);
         page.setChecks(checks);
 
-        // Добавляем flash-сообщения
-        String flash = ctx.sessionAttribute("flash");
-        String flashType = ctx.sessionAttribute("flashType");
-
-        if (flash != null) {
-            page.setFlash(flash);
-            page.setFlashType(flashType);
-            ctx.sessionAttribute("flash", null);
-            ctx.sessionAttribute("flashType", null);
-        }
+        FlashUtil.setFlashToPage(ctx, page);
 
         ctx.render("urls/show.jte", model("page", page));
     }
