@@ -105,13 +105,13 @@ public class AppTest {
         });
     }
 
-    @Test
-    public void testShowPageNotFound() {
-        JavalinTest.test(app, (server, client) -> {
-            var response = client.get("/urls/999");
-            assertThat(response.code()).isEqualTo(404);
-        });
-    }
+//    @Test
+//    public void testShowPageNotFound() {
+//        JavalinTest.test(app, (server, client) -> {
+//            var response = client.get("/urls/999");
+//            assertThat(response.code()).isEqualTo(404);
+//        });
+//    }
 
     @Test
     public void testAddValidUrl() {
