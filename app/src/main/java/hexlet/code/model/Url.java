@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @ToString
-public class Url {
+public final class Url {
     private long id;
     private String name;
     private LocalDateTime createdAt;

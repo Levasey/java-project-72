@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 @Accessors(chain = true)
-public class UrlsPage extends BasePage {
+public final class UrlsPage extends BasePage {
     private List<Url> urls;
     private Map<Long, UrlCheck> latestChecks = new HashMap<>();
 

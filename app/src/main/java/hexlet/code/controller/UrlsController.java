@@ -51,9 +51,9 @@ public class UrlsController {
             String normalizedUrl = url.getProtocol() + "://" + url.getHost();
 
             // Добавляем порт, если он указан и не стандартный
-            if (url.getPort() != -1 &&
-                    !((url.getProtocol().equals("http") && url.getPort() == 80) ||
-                            (url.getProtocol().equals("https") && url.getPort() == 443))) {
+            if (url.getPort() != -1
+                    && !((url.getProtocol().equals("http") && url.getPort() == 80)
+                    || (url.getProtocol().equals("https") && url.getPort() == 443))) {
                 normalizedUrl += ":" + url.getPort();
             }
 

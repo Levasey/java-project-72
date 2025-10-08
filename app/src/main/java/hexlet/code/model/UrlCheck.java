@@ -3,7 +3,7 @@ package hexlet.code.model;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class UrlCheck {
+public final class UrlCheck {
     private Long id;
     private int statusCode;
     private String title;
