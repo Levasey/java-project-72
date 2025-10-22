@@ -47,6 +47,12 @@ public final class App {
             var password = System.getenv("JDBC_DATABASE_PASSWORD");
             hikariConfig.setUsername(username);
             hikariConfig.setPassword(password);
+            // Оптимизации для продакшн
+            hikariConfig.setMaximumPoolSize(10);
+            hikariConfig.setMinimumIdle(2);
+            hikariConfig.setIdleTimeout(300000);
+            hikariConfig.setConnectionTimeout(10000);
+            hikariConfig.setMaxLifetime(1200000);
         }
 
         var dataSource = new HikariDataSource(hikariConfig);
@@ -61,6 +67,13 @@ public final class App {
         var app = Javalin.create(config -> {
             config.bundledPlugins.enableDevLogging();
             config.fileRenderer(new JavalinJte(createTemplateEngine()));
+
+            // Конфигурация для продакшн
+            if (isProduction()) {
+                config.jetty.modifyServletContextHandler(handler -> {
+                    handler.setDisplayName("hexlet-code");
+                });
+            }
         });
 
         app.before(ctx -> {

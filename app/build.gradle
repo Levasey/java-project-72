@@ -11,6 +11,14 @@ application {
     mainClass.set("hexlet.code.App")
 }
 
+tasks.named('jar') {
+    manifest {
+        attributes(
+                'Main-Class': 'hexlet.code.App'
+        )
+    }
+}
+
 group = 'hexlet.code'
 version = '1.0-SNAPSHOT'
 
@@ -54,6 +62,9 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
 
 sonar {
