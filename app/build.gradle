@@ -37,7 +37,7 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testImplementation 'org.assertj:assertj-core:3.24.2' // Используйте стабильную версию
+    testImplementation 'org.assertj:assertj-core:3.24.2'
 
     implementation 'com.h2database:h2:2.2.224'
     implementation 'org.postgresql:postgresql:42.7.7'

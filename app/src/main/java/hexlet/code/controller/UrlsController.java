@@ -9,8 +9,11 @@ import hexlet.code.repository.UrlRepository;
 import hexlet.code.utils.FlashUtil;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.validation.ValidationException;
 
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.List;
@@ -73,7 +76,7 @@ public class UrlsController {
             ctx.sessionAttribute("flashType", "success");
             ctx.redirect("/urls");
 
-        } catch (Exception e) {
+        } catch (MalformedURLException | ValidationException | IllegalArgumentException | URISyntaxException e) {
             ctx.sessionAttribute("flash", "Некорректный URL");
             ctx.sessionAttribute("flashType", "danger");
             ctx.redirect("/");
