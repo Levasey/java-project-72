@@ -45,15 +45,15 @@ public class UrlRepository {
 
     public static Optional<Url> findById(Long id) throws SQLException {
         String sql = "SELECT * FROM urls WHERE id = ?";
-
-        try (var connection = BaseRepository.dataSource.getConnection();
-             var preparedStatement = connection.prepareStatement(sql)) {
-
-            preparedStatement.setLong(1, id);
-            var resultSet = preparedStatement.executeQuery();
-
+        try (var conn = BaseRepository.getConnection();
+             var stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            var resultSet = stmt.executeQuery();
             if (resultSet.next()) {
-                return Optional.of(extractUrl(resultSet));
+                var url = new Url(resultSet.getString("name"));
+                url.setId(resultSet.getLong("id"));
+                url.setCreatedAt(resultSet.getTimestamp("created_at").toLocalDateTime());
+                return Optional.of(url);
             }
             return Optional.empty();
         }

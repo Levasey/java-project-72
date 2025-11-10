@@ -48,11 +48,11 @@ public final class App {
             hikariConfig.setUsername(username);
             hikariConfig.setPassword(password);
             // Оптимизации для продакшн
-            hikariConfig.setMaximumPoolSize(10);
-            hikariConfig.setMinimumIdle(2);
-            hikariConfig.setIdleTimeout(300000);
-            hikariConfig.setConnectionTimeout(10000);
-            hikariConfig.setMaxLifetime(1200000);
+//            hikariConfig.setMaximumPoolSize(10);
+//            hikariConfig.setMinimumIdle(2);
+//            hikariConfig.setIdleTimeout(300000);
+//            hikariConfig.setConnectionTimeout(10000);
+//            hikariConfig.setMaxLifetime(1200000);
         }
 
         var dataSource = new HikariDataSource(hikariConfig);
@@ -85,6 +85,20 @@ public final class App {
         app.post(NamedRoutes.urlsPath(), UrlsController::create);
         app.get(NamedRoutes.urlPath("{id}"), UrlsController::show);
         app.post(NamedRoutes.urlPathCheck("{id}"), UrlCheckController::create);
+
+        app.exception(SQLException.class, (e, ctx) -> {
+            log.error("Database error", e);
+            ctx.sessionAttribute("flash", "Ошибка базы данных");
+            ctx.sessionAttribute("flashType", "danger");
+            ctx.redirect("/");
+        });
+
+        app.exception(Exception.class, (e, ctx) -> {
+            log.error("Unexpected error", e);
+            ctx.sessionAttribute("flash", "Внутренняя ошибка сервера");
+            ctx.sessionAttribute("flashType", "danger");
+            ctx.redirect("/");
+        });
 
         return app;
     }
