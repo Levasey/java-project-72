@@ -6,6 +6,6 @@ COPY . .
 
 RUN chmod +x ./gradlew
 
-RUN ./gradlew clean build
+RUN gradle installDist
 
-CMD ["./gradlew", "run"]
+CMD ./build/install/app/bin/app
